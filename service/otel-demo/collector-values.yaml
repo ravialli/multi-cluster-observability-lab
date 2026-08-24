@@ -1,0 +1,31 @@
+mode: deployment
+
+fullnameOverride: otel-collector
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+command:
+  name: otelcol-contrib
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+service:
+  enabled: true
+
+ports:
+  otlp:
+    enabled: true
+
+  otlp-http:
+    enabled: true
+
+config:
+  exporters:
+    debug:
+      verbosity: basic

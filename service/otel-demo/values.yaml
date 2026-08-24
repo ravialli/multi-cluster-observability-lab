@@ -1,0 +1,15 @@
+grafana:
+  enabled: false
+
+prometheus:
+  enabled: false
+
+jaeger:
+  enabled: false
+
+opensearch:
+  enabled: false
+
+opentelemetry-collector:
+  enabled: false
+
