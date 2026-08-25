@@ -1,0 +1,89 @@
+fullnameOverride: alloy
+
+controller:
+  type: deployment
+  replicas: 1
+
+alloy:
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+  configMap:
+    create: true
+    content: |-
+      otelcol.receiver.otlp "applications" {
+        grpc {}
+        http {}
+
+        output {
+          metrics = [otelcol.processor.transform.enrich.input]
+          logs    = [otelcol.processor.transform.enrich.input]
+          traces  = [otelcol.processor.transform.enrich.input]
+        }
+      }
+
+      otelcol.processor.transform "enrich" {
+        error_mode = "ignore"
+
+        trace_statements {
+          context = "resource"
+          statements = [
+            `set(attributes["k8s.cluster.name"], "workload-cluster")`,
+            `set(attributes["deployment.environment.name"], "lab")`,
+            `set(attributes["service.namespace"], "opentelemetry-demo") where attributes["service.namespace"] == nil`,
+          ]
+        }
+
+        metric_statements {
+          context = "resource"
+          statements = [
+            `set(attributes["k8s.cluster.name"], "workload-cluster")`,
+            `set(attributes["deployment.environment.name"], "lab")`,
+            `set(attributes["service.namespace"], "opentelemetry-demo") where attributes["service.namespace"] == nil`,
+          ]
+        }
+
+        log_statements {
+          context = "resource"
+          statements = [
+            `set(attributes["k8s.cluster.name"], "workload-cluster")`,
+            `set(attributes["deployment.environment.name"], "lab")`,
+            `set(attributes["service.namespace"], "opentelemetry-demo") where attributes["service.namespace"] == nil`,
+          ]
+        }
+
+        output {
+          metrics = [otelcol.processor.batch.default.input]
+          logs    = [otelcol.processor.batch.default.input]
+          traces  = [otelcol.processor.batch.default.input]
+        }
+      }
+
+      otelcol.processor.batch "default" {
+        output {
+          metrics = [otelcol.exporter.otlphttp.temporary.input]
+          logs    = [otelcol.exporter.otlphttp.temporary.input]
+          traces  = [otelcol.exporter.otlphttp.temporary.input]
+        }
+      }
+
+      otelcol.exporter.otlphttp "temporary" {
+        client {
+          endpoint = "http://otel-collector.otel-demo.svc.cluster.local:4318"
+        }
+      }
