@@ -1,3 +1,21 @@
+dashboardsConfigMaps:
+  observability: grafana-observability-dashboards
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+
+    providers:
+      - name: observability
+        orgId: 1
+        folder: Observability Lab
+        type: file
+        disableDeletion: true
+        editable: false
+
+        options:
+          path: /var/lib/grafana/dashboards/observability
+
 persistence:
   enabled: false
 

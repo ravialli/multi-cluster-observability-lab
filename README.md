@@ -1,6 +1,8 @@
 # Multi-Cluster Observability Lab
 
-A hands-on Kubernetes lab for building centralized observability across multiple clusters.
+A Kubernetes observability lab built with two Kind clusters.
+
+The **workload cluster** runs the OpenTelemetry Astronomy Shop and collects telemetry. The **monitoring cluster** stores and visualizes that telemetry.
 
 ## Architecture
 
@@ -8,43 +10,56 @@ A hands-on Kubernetes lab for building centralized observability across multiple
 workload-cluster
 
 Astronomy Shop
-     |
-     v
+      |
+      v
 Grafana Alloy
-  /    |    \
-metrics logs traces
-  |     |     |
-  v     v     v
-Mimir  Loki  Tempo
-   \    |    /
-      Grafana
+  /     |      \
+metrics logs   traces
+  |      |       |
+  v      v       v
+Mimir   Loki   Tempo
+    \    |     /
+       Grafana
+
+Prometheus -> Mimir -> Grafana
 
 Application processes
-     |
-     | eBPF
-     v
+      |
+      v
 alloy-profiles
-     |
-     v
+      |
+      v
+Pyroscope -> Grafana
+```
+
+## Stack
+
+```text
+Terraform
+Kind
+OpenTelemetry Astronomy Shop
+Grafana Alloy
+Prometheus
+Mimir
+Loki
+Tempo
 Pyroscope
-     |
-     v
 Grafana
 ```
 
-## Project Stages
+## Completed Stages
 
-- [x] Stage 1 - Multi-cluster infrastructure with Terraform + Kind
-- [x] Stage 2 - OpenTelemetry Astronomy Shop workload
-- [x] Stage 3 - Instrumentation audit
+- [x] Stage 1 - Infrastructure
+- [x] Stage 2 - Astronomy Shop
+- [x] Stage 3 - Instrumentation
 - [x] Stage 4a - Grafana Alloy
 - [x] Stage 4b - Prometheus
-- [x] Stage 4c - Grafana Mimir
-- [x] Stage 4d - Grafana Loki
-- [x] Stage 4e - Grafana Tempo
-- [x] Stage 4f - Grafana Pyroscope
+- [x] Stage 4c - Mimir
+- [x] Stage 4d - Loki
+- [x] Stage 4e - Tempo
+- [x] Stage 4f - Pyroscope
 - [x] Stage 4g - Grafana
-- [ ] Stage 4h - Dashboards
+- [x] Stage 4h - Dashboards
 - [ ] Stage 4i - Alerting
 - [ ] Stage 4j - SLOs
 - [ ] Stage 4k - Automation scripts
@@ -52,95 +67,61 @@ Grafana
 ## Current Telemetry Flow
 
 ```text
-Metrics:  Astronomy Shop -> Alloy -> Mimir -> Grafana
-Infra:    Kubernetes -> Prometheus -> Mimir -> Grafana
-Logs:     Astronomy Shop -> Alloy -> Loki -> Grafana
-Traces:   Astronomy Shop -> Alloy -> Tempo -> Grafana
-Profiles: Processes -> alloy-profiles -> Pyroscope -> Grafana
+Metrics  -> Mimir -> Grafana
+Logs     -> Loki -> Grafana
+Traces   -> Tempo -> Grafana
+Profiles -> Pyroscope -> Grafana
 ```
 
-## Stage 4c - Grafana Mimir
+Prometheus also sends Kubernetes and node metrics to Mimir using remote write.
 
-Centralized metrics backend in the monitoring cluster.
+## Grafana Dashboards
+
+The lab currently has two provisioned dashboards.
+
+### Application RED - Astronomy Shop
+
+Focuses on:
 
 ```text
-monitoring-cluster-worker:30909
+Request rate
+5xx errors
+Availability
+Latency
+Traffic by service
+HTTP status codes
+Top routes
 ```
 
-## Stage 4d - Grafana Loki
+The current HTTP metric coverage includes the `cart` and `shipping` services.
 
-Centralized log backend in the monitoring cluster.
+### Kubernetes USE - Workload Cluster
+
+Focuses on:
 
 ```text
-monitoring-cluster-worker:31080
+Pod health
+Restarts
+CPU
+Memory
+CPU throttling
+Deployment readiness
+Node count
 ```
 
-## Stage 4e - Grafana Tempo
-
-Centralized trace backend in the monitoring cluster.
+Both dashboards are stored in:
 
 ```text
-API:       monitoring-cluster-worker:32080
-OTLP/HTTP: monitoring-cluster-worker:30418
+observability/grafana/dashboards/
 ```
 
-## Stage 4f - Grafana Pyroscope
-
-Centralized profiling backend in the monitoring cluster.
+and are provisioned automatically into the Grafana folder:
 
 ```text
-monitoring-cluster-worker:30440
+Observability Lab
 ```
 
-Validated:
-
-```text
-Pyroscope 2.2.0
-eBPF tracer loaded
-69 active profiling targets
-0 failed profiling sessions
-0 dropped pprof profiles
-```
-
-Deep profile-content validation is deferred for later.
-
-## Stage 4g - Grafana
-
-Grafana runs in the monitoring cluster as the unified exploration layer.
-
-Helm chart:
-
-```text
-grafana-community/grafana 12.10.0
-```
-
-Validated Grafana app version:
-
-```text
-13.2.0
-```
-
-Provisioned data sources:
-
-```text
-Mimir       -> metrics
-Loki        -> logs
-Tempo       -> traces
-Pyroscope   -> profiles
-```
-
-All four data sources passed Grafana health checks.
-
-Validated through Grafana:
-
-```text
-Mimir       up{job="alloy"} = 1
-Loki        real opentelemetry-demo logs
-Tempo       real cart -> flagd traces
-Pyroscope   datasource connectivity OK
-```
-
-## Repository Structure
+## Repository Layout
 
 ```text
 .
@@ -153,7 +134,8 @@ Pyroscope   datasource connectivity OK
 │   ├── loki.md
 │   ├── tempo.md
 │   ├── pyroscope.md
-│   └── grafana.md
+│   ├── grafana.md
+│   └── dashboards.md
 ├── infra/
 │   └── kind/
 ├── observability/
@@ -164,26 +146,21 @@ Pyroscope   datasource connectivity OK
 │   ├── tempo/
 │   ├── pyroscope/
 │   └── grafana/
-│       └── values.yaml
+│       ├── values.yaml
+│       ├── dashboards-configmap.yaml
+│       └── dashboards/
+│           ├── application-red.json
+│           └── kubernetes-use.json
 └── service/
     └── otel-demo/
 ```
 
 ## Current Status
 
+The lab now has centralized metrics, logs, traces, profiling infrastructure, Grafana, and two working dashboards across separate workload and monitoring clusters.
+
+Next:
+
 ```text
-Stage 1   Infrastructure       COMPLETE
-Stage 2   Service              COMPLETE
-Stage 3   Instrumentation      COMPLETE
-Stage 4a  Grafana Alloy        COMPLETE
-Stage 4b  Prometheus           COMPLETE
-Stage 4c  Grafana Mimir        COMPLETE
-Stage 4d  Grafana Loki         COMPLETE
-Stage 4e  Grafana Tempo        COMPLETE
-Stage 4f  Grafana Pyroscope    COMPLETE
-Stage 4g  Grafana              COMPLETE
+Stage 4i - Alerting
 ```
-
-The lab now centralizes metrics, logs, traces, profiling infrastructure, and visualization across two Kubernetes clusters.
-
-The next stage is **Stage 4h - Dashboards**, where RED and USE views will be built.

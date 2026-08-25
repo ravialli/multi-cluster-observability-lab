@@ -1,0 +1,994 @@
+apiVersion: v1
+data:
+  application-red.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": false,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval]))",
+              "legendFormat": "requests/sec",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Request Rate",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "decimals": 2,
+              "max": 100,
+              "min": 0,
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 6,
+            "y": 0
+          },
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "100 * sum(rate(http_server_request_duration_count{job=~\"$service\",http_response_status_code=~\"5..\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval])), 0.000001)",
+              "legendFormat": "5xx error rate",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "5xx Error Rate",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "decimals": 2,
+              "max": 100,
+              "min": 0,
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 12,
+            "y": 0
+          },
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "100 * (1 - (sum(rate(http_server_request_duration_count{job=~\"$service\",http_response_status_code=~\"5..\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval])) / clamp_min(sum(rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval])), 0.000001)))",
+              "legendFormat": "availability",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "HTTP Availability",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 18,
+            "y": 0
+          },
+          "id": 4,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval])))",
+              "legendFormat": "p95",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "p95 Latency",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 5
+          },
+          "id": 5,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval]))",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Request Throughput by Service",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 5
+          },
+          "id": 6,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_request_duration_bucket{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval])))",
+              "legendFormat": "p50",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval])))",
+              "legendFormat": "p95",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_bucket{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval])))",
+              "legendFormat": "p99",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Request Latency",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 13
+          },
+          "id": 7,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "sum by (job, http_response_status_code) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval]))",
+              "legendFormat": "{{job}} HTTP {{http_response_status_code}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Responses by Status Code",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 13
+          },
+          "id": 8,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "topk(10, sum by (http_route) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[$__rate_interval])))",
+              "legendFormat": "{{http_route}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Top Routes by Request Rate",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "15s",
+      "schemaVersion": 41,
+      "tags": [
+        "observability",
+        "sre",
+        "red",
+        "opentelemetry"
+      ],
+      "templating": {
+        "list": [
+          {
+            "current": {
+              "selected": false,
+              "text": "workload-cluster",
+              "value": "workload-cluster"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "mimir"
+            },
+            "definition": "label_values(http_server_request_duration_count, k8s_cluster_name)",
+            "includeAll": false,
+            "label": "Cluster",
+            "name": "cluster",
+            "query": {
+              "query": "label_values(http_server_request_duration_count, k8s_cluster_name)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "type": "query"
+          },
+          {
+            "current": {
+              "selected": false,
+              "text": "lab",
+              "value": "lab"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "mimir"
+            },
+            "definition": "label_values(http_server_request_duration_count{k8s_cluster_name=\"$cluster\"}, deployment_environment_name)",
+            "includeAll": false,
+            "label": "Environment",
+            "name": "environment",
+            "query": {
+              "query": "label_values(http_server_request_duration_count{k8s_cluster_name=\"$cluster\"}, deployment_environment_name)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "type": "query"
+          },
+          {
+            "allValue": "opentelemetry-demo/.+",
+            "current": {
+              "selected": true,
+              "text": [
+                "All"
+              ],
+              "value": [
+                "$__all"
+              ]
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "mimir"
+            },
+            "definition": "label_values(http_server_request_duration_count{k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",job=~\"opentelemetry-demo/.+\"}, job)",
+            "includeAll": true,
+            "label": "Service",
+            "multi": true,
+            "name": "service",
+            "query": {
+              "query": "label_values(http_server_request_duration_count{k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",job=~\"opentelemetry-demo/.+\"}, job)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "regex": "",
+            "sort": 1,
+            "type": "query"
+          }
+        ]
+      },
+      "time": {
+        "from": "now-30m",
+        "to": "now"
+      },
+      "timezone": "browser",
+      "title": "Application RED - Astronomy Shop",
+      "uid": "application-red",
+      "version": 1
+    }
+  kubernetes-use.json: |-
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": false,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Current number of pods in the Running phase. max by(pod) deduplicates multiple kube-state-metrics scrape targets.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "sum(max by (pod) (kube_pod_status_phase{cluster=\"$cluster\",environment=\"$environment\",namespace=\"$namespace\",phase=\"Running\"}))",
+              "legendFormat": "Running Pods",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Running Pods",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Cumulative container restart count in the selected namespace, deduplicated across kube-state-metrics replicas.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 6,
+            "y": 0
+          },
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "sum(max by (pod, container) (kube_pod_container_status_restarts_total{cluster=\"$cluster\",environment=\"$environment\",namespace=\"$namespace\"}))",
+              "legendFormat": "Container Restarts",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Container Restarts",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Current unavailable deployment replicas.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 12,
+            "y": 0
+          },
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "sum(max by (deployment) (kube_deployment_status_replicas_unavailable{cluster=\"$cluster\",environment=\"$environment\",namespace=\"$namespace\"}))",
+              "legendFormat": "Unavailable Replicas",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Unavailable Replicas",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Number of Kubernetes nodes visible through kube-state-metrics.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 18,
+            "y": 0
+          },
+          "id": 4,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "count(max by (node) (kube_node_info{cluster=\"$cluster\",environment=\"$environment\"}))",
+              "legendFormat": "Cluster Nodes",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster Nodes",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "CPU utilization in cores by pod. max by(pod,container) avoids double-counting stale/duplicate cAdvisor container series.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "cores"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 5
+          },
+          "id": 5,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "sum by (pod) (max by (pod, container) (rate(container_cpu_usage_seconds_total{cluster=\"$cluster\",environment=\"$environment\",namespace=\"$namespace\",container!=\"\",image!=\"\"}[$__rate_interval])))",
+              "legendFormat": "{{pod}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "CPU Usage by Pod",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Current container working-set memory aggregated to pod level.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 5
+          },
+          "id": 6,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "sum by (pod) (max by (pod, container) (container_memory_working_set_bytes{cluster=\"$cluster\",environment=\"$environment\",namespace=\"$namespace\",container!=\"\",image!=\"\"}))",
+              "legendFormat": "{{pod}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Memory Working Set by Pod",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Percentage of CFS scheduling periods throttled by pod.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 13
+          },
+          "id": 7,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "100 * sum by (pod) (max by (pod, container) (rate(container_cpu_cfs_throttled_periods_total{cluster=\"$cluster\",environment=\"$environment\",namespace=\"$namespace\",container!=\"\",image!=\"\"}[$__rate_interval]))) / clamp_min(sum by (pod) (max by (pod, container) (rate(container_cpu_cfs_periods_total{cluster=\"$cluster\",environment=\"$environment\",namespace=\"$namespace\",container!=\"\",image!=\"\"}[$__rate_interval]))), 0.000001)",
+              "legendFormat": "{{pod}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "CPU Throttling by Pod",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Ready replicas as a percentage of desired replicas for each deployment.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 13
+          },
+          "id": 8,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "100 * max by (deployment) (kube_deployment_status_replicas_ready{cluster=\"$cluster\",environment=\"$environment\",namespace=\"$namespace\"}) / clamp_min(max by (deployment) (kube_deployment_spec_replicas{cluster=\"$cluster\",environment=\"$environment\",namespace=\"$namespace\"}), 1)",
+              "legendFormat": "{{deployment}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Deployment Readiness",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "15s",
+      "schemaVersion": 41,
+      "tags": [
+        "observability",
+        "sre",
+        "use",
+        "kubernetes"
+      ],
+      "templating": {
+        "list": [
+          {
+            "current": {
+              "selected": false,
+              "text": "workload-cluster",
+              "value": "workload-cluster"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "mimir"
+            },
+            "definition": "label_values(kube_node_info, cluster)",
+            "includeAll": false,
+            "label": "Cluster",
+            "name": "cluster",
+            "query": {
+              "query": "label_values(kube_node_info, cluster)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "type": "query"
+          },
+          {
+            "current": {
+              "selected": false,
+              "text": "lab",
+              "value": "lab"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "mimir"
+            },
+            "definition": "label_values(kube_node_info{cluster=\"$cluster\"}, environment)",
+            "includeAll": false,
+            "label": "Environment",
+            "name": "environment",
+            "query": {
+              "query": "label_values(kube_node_info{cluster=\"$cluster\"}, environment)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "type": "query"
+          },
+          {
+            "current": {
+              "selected": false,
+              "text": "otel-demo",
+              "value": "otel-demo"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "mimir"
+            },
+            "definition": "label_values(kube_pod_info{cluster=\"$cluster\",environment=\"$environment\"}, namespace)",
+            "includeAll": false,
+            "label": "Namespace",
+            "name": "namespace",
+            "query": {
+              "query": "label_values(kube_pod_info{cluster=\"$cluster\",environment=\"$environment\"}, namespace)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "sort": 1,
+            "type": "query"
+          }
+        ]
+      },
+      "time": {
+        "from": "now-30m",
+        "to": "now"
+      },
+      "timezone": "browser",
+      "title": "Kubernetes USE - Workload Cluster",
+      "uid": "kubernetes-use",
+      "version": 1
+    }
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: grafana-observability-dashboards
+  namespace: observability
