@@ -20,6 +20,9 @@ server:
 
   retention: "6h"
 
+  remoteWrite:
+    - url: http://monitoring-cluster-worker:30909/api/v1/push
+
   resources:
     requests:
       cpu: 200m

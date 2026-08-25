@@ -7,31 +7,23 @@ The project uses a separate **workload cluster** and **monitoring cluster** to e
 ## Architecture
 
 ```text
-monitoring-cluster                         workload-cluster
-------------------                         ----------------
-Central observability                      OpenTelemetry Astronomy Shop
-backends (planned)                                 |
-                                                    | OTLP/gRPC + OTLP/HTTP
-                                                    v
-                                              Grafana Alloy
-                                                    |
-                                                    | enriched OTLP
-                                                    v
-                                         Temporary OTel Collector
-
-                                          Kubernetes / node metrics
-                                                    |
-                          +-------------------------+----------------------+
-                          |                         |                      |
-                  kube-state-metrics          node-exporter           cAdvisor
-                          |                         |                      |
-                          +-------------------------+----------------------+
-                                                    |
-                                                    v
-                                                Prometheus
+monitoring-cluster                           workload-cluster
+------------------                           ----------------
+Grafana Mimir                                OpenTelemetry Astronomy Shop
+     ^                                               |
+     |                                               | OTLP
+     |                                               v
+     |                                         Grafana Alloy
+     |                                               |
+     |                          application metrics  |
+     +-----------------------------------------------+
+     |
+     | remote_write
+     |
+Prometheus <----- Kubernetes / nodes / containers / Alloy
 ```
 
-The monitoring cluster will host the centralized observability backends as the project progresses.
+The workload cluster runs the application and local telemetry collection components. The monitoring cluster hosts centralized observability backends.
 
 ## Project Stages
 
@@ -43,7 +35,7 @@ The monitoring cluster will host the centralized observability backends as the p
 
 - [x] Stage 4a - Grafana Alloy
 - [x] Stage 4b - Prometheus
-- [ ] Stage 4c - Grafana Mimir
+- [x] Stage 4c - Grafana Mimir
 - [ ] Stage 4d - Grafana Loki
 - [ ] Stage 4e - Grafana Tempo
 - [ ] Stage 4f - Grafana Pyroscope
@@ -60,21 +52,18 @@ The monitoring cluster will host the centralized observability backends as the p
 ```text
 Astronomy Shop
       |
-      | OTLP/gRPC :4317
-      | OTLP/HTTP :4318
+      | OTLP/gRPC + OTLP/HTTP
       v
 Grafana Alloy
       |
-      | resource enrichment
-      | batching
-      v
-Temporary OpenTelemetry Collector
+      +------ metrics ------> Grafana Mimir
       |
-      v
-Debug exporter
+      +------ logs ---------> Temporary OTel Collector
+      |
+      +------ traces -------> Temporary OTel Collector
 ```
 
-Grafana Alloy is now the application telemetry gateway.
+Grafana Alloy is the application telemetry gateway.
 
 It enriches telemetry with:
 
@@ -83,9 +72,9 @@ k8s.cluster.name = workload-cluster
 deployment.environment.name = lab
 ```
 
-and normalizes `service.namespace` to `opentelemetry-demo` when the attribute is missing.
+and normalizes `service.namespace` to `opentelemetry-demo` when needed.
 
-The standalone OpenTelemetry Collector remains temporary and is used only as a validation sink until the real telemetry backends are connected.
+Application metrics are now stored centrally in Mimir.
 
 ### Infrastructure Metrics
 
@@ -99,13 +88,14 @@ Alloy /metrics
       v
 Prometheus
       |
+      | remote_write
       v
-6-hour local TSDB
+Grafana Mimir
 ```
 
-Prometheus is responsible for pull-based Kubernetes, node, container, and Alloy operational metrics.
+Prometheus remains the workload-cluster scraper and short-term metrics store.
 
-Long-term centralized metrics storage is intentionally deferred to Grafana Mimir.
+Mimir is now the centralized metrics backend for both application and infrastructure metrics.
 
 ## Stage 3 - Instrumentation Audit
 
@@ -129,71 +119,168 @@ cart / payment          -> OTLP/gRPC on 4317
 checkout / shipping     -> OTLP/HTTP on 4318
 ```
 
-No additional application source instrumentation is required for the lab.
+No additional application source instrumentation is required.
 
 Profiles are intentionally deferred until the Pyroscope stage.
 
 ## Stage 4a - Grafana Alloy
 
-Grafana Alloy was deployed as a single-replica telemetry gateway in the workload cluster.
+Grafana Alloy runs as a telemetry gateway in the workload cluster.
 
-Validation confirmed that Alloy receives all three major telemetry signals over both OTLP transports:
+Validation confirmed:
 
 ```text
-Logs     -> OTLP/gRPC + OTLP/HTTP
-Metrics  -> OTLP/gRPC + OTLP/HTTP
-Traces   -> OTLP/gRPC + OTLP/HTTP
+OTLP/gRPC logs       PASS
+OTLP/HTTP logs       PASS
+OTLP/gRPC metrics    PASS
+OTLP/HTTP metrics    PASS
+OTLP/gRPC traces     PASS
+OTLP/HTTP traces     PASS
 ```
-
-Alloy also successfully forwards telemetry to the temporary OpenTelemetry Collector.
 
 Resource enrichment was validated downstream:
 
 ```text
-k8s.cluster.name: Str(workload-cluster)
-deployment.environment.name: Str(lab)
+k8s.cluster.name = workload-cluster
+deployment.environment.name = lab
 ```
 
-No Alloy transform or OTTL errors were observed during validation.
+No persistent transform or OTTL errors were observed.
 
 ## Stage 4b - Prometheus
 
-Prometheus was added as the workload-cluster metrics scraper.
+Prometheus runs in the workload cluster and scrapes:
 
-The deployment includes:
-
-- Prometheus server
 - kube-state-metrics
-- node-exporter on both Kind nodes
-- Kubernetes API / kubelet / cAdvisor scraping
-- Alloy self-metrics scraping
+- node-exporter
+- Kubernetes API
+- kubelet / cAdvisor
+- Alloy self-metrics
 
 Validated examples:
 
 ```text
-Alloy target UP                         -> 1
-otel-demo pod count                     -> 26
-node_uname_info count                   -> 2
-container CPU metric series             -> 79
-container working-set memory series     -> 79
+Alloy target UP                     -> 1
+otel-demo pod count                 -> 26
+node_uname_info count               -> 2
+container CPU metric series         -> 79
+container memory metric series      -> 79
 ```
 
-Prometheus external labels are configured as:
+Prometheus external labels:
 
 ```yaml
 cluster: workload-cluster
 environment: lab
 ```
 
-These labels will be used when Prometheus begins sending metrics to the centralized Mimir backend.
-
-Prometheus currently uses a short local retention window:
+Local retention remains intentionally short:
 
 ```text
 6 hours
 ```
 
-Persistent storage and remote write are intentionally deferred.
+## Stage 4c - Grafana Mimir
+
+Grafana Mimir runs in the monitoring cluster as the centralized metrics backend.
+
+For this Kind lab, Mimir runs in monolithic mode:
+
+```text
+-target=all
+```
+
+and uses filesystem storage.
+
+### Cross-Cluster Path
+
+The Kind clusters share Docker's `kind` network.
+
+The workload cluster reaches Mimir through:
+
+```text
+monitoring-cluster-worker:30909
+```
+
+which maps to Mimir's HTTP port:
+
+```text
+9009
+```
+
+This avoids incorrectly relying on Kubernetes service DNS across clusters.
+
+### Prometheus -> Mimir
+
+Prometheus sends infrastructure metrics using `remote_write` to:
+
+```text
+http://monitoring-cluster-worker:30909/api/v1/push
+```
+
+Validated centrally in Mimir:
+
+```text
+Alloy target UP       -> 1
+otel-demo pods        -> 26
+Kind nodes            -> 2
+```
+
+with:
+
+```text
+cluster="workload-cluster"
+environment="lab"
+```
+
+### Alloy -> Mimir
+
+Application metrics are exported from Alloy using OTLP/HTTP:
+
+```text
+http://monitoring-cluster-worker:30909/otlp/v1/metrics
+```
+
+Mimir promotes selected OpenTelemetry resource attributes into Prometheus labels:
+
+```text
+k8s.cluster.name             -> k8s_cluster_name
+deployment.environment.name  -> deployment_environment_name
+service.version              -> service_version
+service.criticality          -> service_criticality
+```
+
+Application metric validation returned:
+
+```text
+2516 series
+```
+
+for:
+
+```text
+k8s_cluster_name="workload-cluster"
+deployment_environment_name="lab"
+```
+
+Observed service criticality values:
+
+```text
+critical
+high
+medium
+low
+```
+
+Alloy's Mimir exporter counter increased from:
+
+```text
+4,888 -> 12,631 -> 16,267
+```
+
+confirming continuous application metric delivery.
+
+No persistent Alloy export failures or recent persistent Mimir errors remained after validation.
 
 ## Repository Structure
 
@@ -203,7 +290,8 @@ Persistent storage and remote write are intentionally deferred.
 │   ├── infra-and-service.md
 │   ├── instrumentation.md
 │   ├── alloy.md
-│   └── prometheus.md
+│   ├── prometheus.md
+│   └── mimir.md
 ├── infra/
 │   └── kind/
 │       ├── main.tf
@@ -211,8 +299,10 @@ Persistent storage and remote write are intentionally deferred.
 ├── observability/
 │   ├── alloy/
 │   │   └── values.yaml
-│   └── prometheus/
-│       └── values.yaml
+│   ├── prometheus/
+│   │   └── values.yaml
+│   └── mimir/
+│       └── mimir.yaml
 └── service/
     └── otel-demo/
         ├── values.yaml
@@ -223,8 +313,9 @@ Persistent storage and remote write are intentionally deferred.
 
 - [Infra and Service](docs/infra-and-service.md) - Kind infrastructure, Terraform, and Astronomy Shop deployment
 - [Instrumentation](docs/instrumentation.md) - Stage 3 telemetry audit and instrumentation decisions
-- [Grafana Alloy](docs/alloy.md) - Stage 4a Alloy deployment, routing, enrichment, and validation
-- [Prometheus](docs/prometheus.md) - Stage 4b metrics scraping, PromQL validation, and design decisions
+- [Grafana Alloy](docs/alloy.md) - Stage 4a routing, enrichment, and validation
+- [Prometheus](docs/prometheus.md) - Stage 4b metrics scraping and PromQL validation
+- [Grafana Mimir](docs/mimir.md) - Stage 4c centralized metrics storage, remote write, OTLP ingestion, and cross-cluster validation
 
 ## Planned Stack
 
@@ -232,19 +323,20 @@ Grafana Alloy · Prometheus · Mimir · Loki · Tempo · Pyroscope · Grafana
 
 ## Current Status
 
-Completed:
-
 ```text
 Stage 1   Infrastructure       COMPLETE
 Stage 2   Service              COMPLETE
 Stage 3   Instrumentation      COMPLETE
 Stage 4a  Grafana Alloy        COMPLETE
 Stage 4b  Prometheus           COMPLETE
+Stage 4c  Grafana Mimir        COMPLETE
 ```
 
-The workload cluster is now producing and collecting two complementary telemetry streams:
+The lab now has centralized metrics storage across two Kubernetes clusters.
 
-1. **Application telemetry** flows from Astronomy Shop through Grafana Alloy.
-2. **Infrastructure metrics** are scraped by Prometheus from Kubernetes, nodes, containers, and Alloy itself.
+Two independent metric paths converge in Mimir:
 
-The next stage is **Stage 4c - Grafana Mimir**, which will introduce centralized metrics storage and connect the workload-cluster metrics pipeline to the monitoring cluster.
+1. **Infrastructure metrics** are scraped by Prometheus and sent using remote write.
+2. **Application metrics** are received and enriched by Alloy, then exported using OTLP/HTTP.
+
+The next stage is **Stage 4d - Grafana Loki**, which will introduce centralized log storage.
