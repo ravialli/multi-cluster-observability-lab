@@ -1,0 +1,122 @@
+fullnameOverride: alloy-profiles
+
+controller:
+  type: daemonset
+  hostPID: true
+
+  volumes:
+    extra:
+      - name: symb-cache
+        emptyDir: {}
+
+alloy:
+  securityContext:
+    privileged: true
+    runAsUser: 0
+    runAsGroup: 0
+
+  mounts:
+    extra:
+      - name: symb-cache
+        mountPath: /tmp/symb-cache
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+  configMap:
+    create: true
+    content: |-
+      discovery.kubernetes "local_pods" {
+        role = "pod"
+
+        selectors {
+          role  = "pod"
+          field = "spec.nodeName=" + sys.env("HOSTNAME")
+        }
+      }
+
+      discovery.process "local_processes" {
+        join = discovery.kubernetes.local_pods.targets
+
+        refresh_interval = "15s"
+
+        discover_config {
+          cwd          = true
+          exe          = true
+          commandline  = true
+          username     = true
+          uid          = true
+          container_id = true
+        }
+      }
+
+      discovery.relabel "otel_demo_processes" {
+        targets = discovery.process.local_processes.targets
+
+        rule {
+          action        = "drop"
+          source_labels = ["__meta_kubernetes_pod_phase"]
+          regex         = "Succeeded|Failed|Completed"
+        }
+
+        rule {
+          action        = "keep"
+          source_labels = ["__meta_kubernetes_namespace"]
+          regex         = "otel-demo"
+        }
+
+        rule {
+          action        = "replace"
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "service_name"
+        }
+
+        rule {
+          action        = "replace"
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "service_namespace"
+        }
+
+        rule {
+          action        = "replace"
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+
+        rule {
+          action        = "replace"
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+
+        rule {
+          action        = "replace"
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+      }
+
+      pyroscope.ebpf "otel_demo" {
+        targets = discovery.relabel.otel_demo_processes.output
+
+        forward_to = [
+          pyroscope.write.central.receiver,
+        ]
+
+        collect_interval = "15s"
+      }
+
+      pyroscope.write "central" {
+        endpoint {
+          url = "http://monitoring-cluster-worker:30440"
+        }
+
+        external_labels = {
+          "k8s_cluster_name"            = "workload-cluster",
+          "deployment_environment_name" = "lab",
+        }
+      }
