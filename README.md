@@ -84,7 +84,7 @@ Profiles are intentionally deferred until the Pyroscope stage.
 ```text
 .
 ├── docs/
-│   ├── stage-1-2.md
+│   ├── infra-and-service.md
 │   └── instrumentation.md
 ├── infra/
 │   └── kind/
