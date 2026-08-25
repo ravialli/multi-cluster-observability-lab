@@ -20,7 +20,7 @@ Observability stack                  Astronomy Shop
 
 - [x] Stage 1 - Multi-cluster infrastructure with Terraform + Kind
 - [x] Stage 2 - OpenTelemetry Astronomy Shop workload
-- [ ] Stage 3 - Instrumentation audit
+- [x] Stage 3 - Instrumentation audit
 - [ ] Stage 4 - Grafana Alloy
 - [ ] Stage 5 - Prometheus / Mimir
 - [ ] Stage 6 - Loki
@@ -46,12 +46,46 @@ Debug exporter
 
 The standalone collector is temporary. It is currently used to validate application telemetry before Grafana Alloy and the centralized observability backends are introduced.
 
+## Stage 3 - Instrumentation Audit
+
+The Astronomy Shop workload was audited before adding another telemetry collection layer.
+
+The audit confirmed:
+
+- traces are reaching the collector
+- metrics are reaching the collector
+- logs are reaching the collector
+- services use both OTLP/gRPC and OTLP/HTTP
+- `service.name` is derived from the Kubernetes workload component label
+- `service.namespace` is set to `opentelemetry-demo`
+- application telemetry includes `service.version`
+- services include `service.criticality` where configured
+
+Example transport patterns:
+
+```text
+cart / payment          -> OTLP/gRPC on 4317
+checkout / shipping     -> OTLP/HTTP on 4318
+```
+
+No additional application instrumentation is required for the lab at this stage. The existing OpenTelemetry instrumentation is kept unchanged.
+
+Cluster and environment identity will be added centrally in Grafana Alloy instead of being duplicated across individual services:
+
+```text
+k8s.cluster.name = workload-cluster
+deployment.environment.name = lab
+```
+
+Profiles are intentionally deferred until the Pyroscope stage.
+
 ## Repository Structure
 
 ```text
 .
 ├── docs/
-│   └── stage-1-2.md
+│   ├── stage-1-2.md
+│   └── instrumentation.md
 ├── infra/
 │   └── kind/
 │       ├── main.tf
@@ -66,21 +100,16 @@ The standalone collector is temporary. It is currently used to validate applicat
 
 See [Infra and Service](docs/infra-and-service.md) for setup details, architecture, commands, and validation steps.
 
+See [Instrumentation](docs/instrumentation.md) for the Stage 3 telemetry audit and instrumentation decisions.
+
 ## Planned Stack
 
 Grafana Alloy · Prometheus · Mimir · Loki · Tempo · Pyroscope · Grafana
 
 ## Current Status
 
-Stage 1 and Stage 2 are complete.
+Stage 1, Stage 2, and Stage 3 are complete.
 
-The next step is an instrumentation audit to identify:
+The workload is already producing traces, metrics, and logs through a mix of OTLP/gRPC and OTLP/HTTP. No additional application source instrumentation is required.
 
-- services emitting traces
-- services emitting metrics
-- services emitting logs
-- OTLP protocol usage
-- resource attributes
-- automatic vs manual instrumentation
-- instrumentation gaps
-
+The next step is Grafana Alloy, which will become the telemetry collection and processing layer before the centralized observability backends are introduced.
