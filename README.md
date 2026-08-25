@@ -64,7 +64,7 @@ The standalone collector is temporary. It is currently used to validate applicat
 
 ## Documentation
 
-See [Stage 1 and Stage 2](docs/stage-1-2.md) for setup details, architecture, commands, and validation steps.
+See [Infra and Service](docs/infra-and-service.md) for setup details, architecture, commands, and validation steps.
 
 ## Planned Stack
 
