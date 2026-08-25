@@ -80,7 +80,7 @@ alloy:
             otelcol.exporter.otlphttp.mimir_metrics.input,
           ]
           logs    = [otelcol.exporter.otlphttp.loki_logs.input]
-          traces  = [otelcol.exporter.otlphttp.temporary.input]
+          traces  = [otelcol.exporter.otlphttp.tempo_traces.input]
         }
       }
 
@@ -99,5 +99,11 @@ alloy:
       otelcol.exporter.otlphttp "loki_logs" {
         client {
           endpoint = "http://monitoring-cluster-worker:31080/otlp"
+        }
+      }
+
+      otelcol.exporter.otlphttp "tempo_traces" {
+        client {
+          endpoint = "http://monitoring-cluster-worker:30418"
         }
       }
