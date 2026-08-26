@@ -60,11 +60,11 @@ Grafana
 - [x] Stage 4f - Pyroscope
 - [x] Stage 4g - Grafana
 - [x] Stage 4h - Dashboards
-- [ ] Stage 4i - Alerting
-- [ ] Stage 4j - SLOs
+- [x] Stage 4i - Alerting
+- [x] Stage 4j - SLOs
 - [ ] Stage 4k - Automation scripts
 
-## Current Telemetry Flow
+## Telemetry Flow
 
 ```text
 Metrics  -> Mimir -> Grafana
@@ -77,49 +77,63 @@ Prometheus also sends Kubernetes and node metrics to Mimir using remote write.
 
 ## Grafana Dashboards
 
-The lab currently has two provisioned dashboards.
-
-### Application RED - Astronomy Shop
-
-Focuses on:
+The lab currently has three provisioned dashboards:
 
 ```text
-Request rate
-5xx errors
-Availability
-Latency
-Traffic by service
-HTTP status codes
-Top routes
+Application RED - Astronomy Shop
+Kubernetes USE - Workload Cluster
+Service SLO - Astronomy Shop
 ```
 
-The current HTTP metric coverage includes the `cart` and `shipping` services.
-
-### Kubernetes USE - Workload Cluster
-
-Focuses on:
-
-```text
-Pod health
-Restarts
-CPU
-Memory
-CPU throttling
-Deployment readiness
-Node count
-```
-
-Both dashboards are stored in:
+They are stored in:
 
 ```text
 observability/grafana/dashboards/
 ```
 
-and are provisioned automatically into the Grafana folder:
+and loaded automatically into the Grafana folder:
 
 ```text
 Observability Lab
 ```
+
+The RED dashboard focuses on request rate, errors, availability, latency, status codes, and top routes.
+
+The Kubernetes USE dashboard focuses on pod health, restarts, CPU, memory, throttling, deployment readiness, and node count.
+
+The SLO dashboard tracks 99% availability and 95% latency targets for the validated HTTP metrics on the `cart` and `shipping` services.
+
+## Alerting
+
+Grafana alert rules are provisioned from:
+
+```text
+observability/grafana/alerting/alert-rules.yaml
+```
+
+Current rules cover:
+
+```text
+HTTP 5xx error rate
+HTTP p95 latency
+Pod restarts
+Unavailable deployment replicas
+Availability burn rate
+Latency burn rate
+```
+
+The alerting flow was validated with a real pod restart event that moved from firing back to normal.
+
+## SLOs
+
+The lab uses two simple service objectives:
+
+```text
+Availability: 99%
+Latency:      95% of requests under 500 ms
+```
+
+For this local lab, SLO calculations use short evaluation windows rather than a production-style monthly window.
 
 ## Repository Layout
 
@@ -135,7 +149,9 @@ Observability Lab
 │   ├── tempo.md
 │   ├── pyroscope.md
 │   ├── grafana.md
-│   └── dashboards.md
+│   ├── dashboards.md
+│   ├── alerting.md
+│   └── slo.md
 ├── infra/
 │   └── kind/
 ├── observability/
@@ -148,19 +164,23 @@ Observability Lab
 │   └── grafana/
 │       ├── values.yaml
 │       ├── dashboards-configmap.yaml
+│       ├── alerting/
+│       │   ├── alert-rules.yaml
+│       │   └── alert-rules-configmap.yaml
 │       └── dashboards/
 │           ├── application-red.json
-│           └── kubernetes-use.json
+│           ├── kubernetes-use.json
+│           └── service-slo.json
 └── service/
     └── otel-demo/
 ```
 
 ## Current Status
 
-The lab now has centralized metrics, logs, traces, profiling infrastructure, Grafana, and two working dashboards across separate workload and monitoring clusters.
+The lab now has centralized metrics, logs, traces, profiling infrastructure, Grafana dashboards, alerting, and basic SLO tracking across separate workload and monitoring clusters.
 
 Next:
 
 ```text
-Stage 4i - Alerting
+Stage 4k - Automation scripts
 ```

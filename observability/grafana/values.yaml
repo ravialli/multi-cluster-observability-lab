@@ -1,3 +1,10 @@
+extraConfigmapMounts:
+  - name: grafana-alert-rules
+    configMap: grafana-alert-rules
+    mountPath: /etc/grafana/provisioning/alerting/rules.yaml
+    subPath: rules.yaml
+    readOnly: true
+
 dashboardsConfigMaps:
   observability: grafana-observability-dashboards
 

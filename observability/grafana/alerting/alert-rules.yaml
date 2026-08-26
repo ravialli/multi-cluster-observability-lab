@@ -1,0 +1,494 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: observability-lab-alerts
+    folder: Observability Lab
+    interval: 1m
+    rules:
+      - uid: lab-high-5xx-rate
+        title: High HTTP 5xx Error Rate
+        condition: threshold
+        data:
+          - refId: error_rate
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: mimir
+            model:
+              datasource:
+                type: prometheus
+                uid: mimir
+              editorMode: code
+              expr: |
+                100 *
+                (
+                  sum by (job) (
+                    rate(http_server_request_duration_count{
+                      job=~"opentelemetry-demo/.+",
+                      k8s_cluster_name="workload-cluster",
+                      deployment_environment_name="lab",
+                      http_response_status_code=~"5.."
+                    }[5m])
+                  )
+                  or on(job)
+                  (
+                    0 *
+                    sum by (job) (
+                      rate(http_server_request_duration_count{
+                        job=~"opentelemetry-demo/.+",
+                        k8s_cluster_name="workload-cluster",
+                        deployment_environment_name="lab"
+                      }[5m])
+                    )
+                  )
+                )
+                /
+                clamp_min(
+                  sum by (job) (
+                    rate(http_server_request_duration_count{
+                      job=~"opentelemetry-demo/.+",
+                      k8s_cluster_name="workload-cluster",
+                      deployment_environment_name="lab"
+                    }[5m])
+                  ),
+                  0.000001
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: error_rate
+
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [5]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [error_rate]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: error_rate
+              refId: threshold
+              type: threshold
+
+        dashboardUid: application-red
+        panelId: 2
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: High HTTP 5xx error rate
+          description: '5xx responses are above 5% for {{ $labels.job }}.'
+        labels:
+          severity: warning
+          category: application
+        isPaused: false
+
+      - uid: lab-high-p95-latency
+        title: High HTTP p95 Latency
+        condition: threshold
+        data:
+          - refId: p95_latency
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: mimir
+            model:
+              datasource:
+                type: prometheus
+                uid: mimir
+              editorMode: code
+              expr: |
+                histogram_quantile(
+                  0.95,
+                  sum by (job, le) (
+                    rate(http_server_request_duration_bucket{
+                      job=~"opentelemetry-demo/.+",
+                      k8s_cluster_name="workload-cluster",
+                      deployment_environment_name="lab"
+                    }[5m])
+                  )
+                )
+                and on(job)
+                (
+                  sum by (job) (
+                    rate(http_server_request_duration_count{
+                      job=~"opentelemetry-demo/.+",
+                      k8s_cluster_name="workload-cluster",
+                      deployment_environment_name="lab"
+                    }[5m])
+                  ) > 0
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: p95_latency
+
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.5]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [p95_latency]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: p95_latency
+              refId: threshold
+              type: threshold
+
+        dashboardUid: application-red
+        panelId: 4
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: High HTTP p95 latency
+          description: 'p95 request latency is above 500 ms for {{ $labels.job }}.'
+        labels:
+          severity: warning
+          category: application
+        isPaused: false
+
+      - uid: lab-pod-restarted
+        title: Pod Restart Detected
+        condition: threshold
+        data:
+          - refId: restarts
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: mimir
+            model:
+              datasource:
+                type: prometheus
+                uid: mimir
+              editorMode: code
+              expr: |
+                max by (pod, container) (
+                  increase(kube_pod_container_status_restarts_total{
+                    cluster="workload-cluster",
+                    environment="lab",
+                    namespace="otel-demo"
+                  }[10m])
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: restarts
+
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [restarts]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: restarts
+              refId: threshold
+              type: threshold
+
+        dashboardUid: kubernetes-use
+        panelId: 2
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: Pod restart detected
+          description: 'Container {{ $labels.container }} in pod {{ $labels.pod }} restarted during the last 10 minutes.'
+        labels:
+          severity: warning
+          category: kubernetes
+        isPaused: false
+
+      - uid: lab-deployment-unavailable
+        title: Deployment Has Unavailable Replicas
+        condition: threshold
+        data:
+          - refId: unavailable
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: mimir
+            model:
+              datasource:
+                type: prometheus
+                uid: mimir
+              editorMode: code
+              expr: |
+                max by (deployment) (
+                  kube_deployment_status_replicas_unavailable{
+                    cluster="workload-cluster",
+                    environment="lab",
+                    namespace="otel-demo"
+                  }
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: unavailable
+
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [unavailable]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: unavailable
+              refId: threshold
+              type: threshold
+
+        dashboardUid: kubernetes-use
+        panelId: 3
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: Deployment has unavailable replicas
+          description: 'Deployment {{ $labels.deployment }} has unavailable replicas.'
+        labels:
+          severity: critical
+          category: kubernetes
+        isPaused: false
+
+      - uid: lab-availability-burn-rate
+        title: Availability Error Budget Burning Fast
+        condition: threshold
+        data:
+          - refId: burn_rate
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: mimir
+            model:
+              datasource:
+                type: prometheus
+                uid: mimir
+              editorMode: code
+              expr: |
+                (
+                  (
+                    (
+                      sum by (job) (
+                        rate(http_server_request_duration_count{
+                          job=~"opentelemetry-demo/.+",
+                          k8s_cluster_name="workload-cluster",
+                          deployment_environment_name="lab",
+                          http_response_status_code=~"5.."
+                        }[5m])
+                      )
+                      or on(job)
+                      (
+                        0 *
+                        sum by (job) (
+                          rate(http_server_request_duration_count{
+                            job=~"opentelemetry-demo/.+",
+                            k8s_cluster_name="workload-cluster",
+                            deployment_environment_name="lab"
+                          }[5m])
+                        )
+                      )
+                    )
+                    /
+                    clamp_min(
+                      sum by (job) (
+                        rate(http_server_request_duration_count{
+                          job=~"opentelemetry-demo/.+",
+                          k8s_cluster_name="workload-cluster",
+                          deployment_environment_name="lab"
+                        }[5m])
+                      ),
+                      0.000001
+                    )
+                  )
+                  / 0.01
+                )
+                and on(job)
+                (
+                  sum by (job) (
+                    rate(http_server_request_duration_count{
+                      job=~"opentelemetry-demo/.+",
+                      k8s_cluster_name="workload-cluster",
+                      deployment_environment_name="lab"
+                    }[5m])
+                  ) > 0
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: burn_rate
+
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [2]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [burn_rate]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: burn_rate
+              refId: threshold
+              type: threshold
+
+        dashboardUid: service-slo
+        panelId: 3
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: Availability error budget is burning fast
+          description: 'Availability burn rate is above 2x for {{ $labels.job }}.'
+        labels:
+          severity: critical
+          category: slo
+        isPaused: false
+
+      - uid: lab-latency-burn-rate
+        title: Latency Error Budget Burning Fast
+        condition: threshold
+        data:
+          - refId: burn_rate
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: mimir
+            model:
+              datasource:
+                type: prometheus
+                uid: mimir
+              editorMode: code
+              expr: |
+                (
+                  (
+                    1 -
+                    (
+                      sum by (job) (
+                        rate(http_server_request_duration_bucket{
+                          job=~"opentelemetry-demo/.+",
+                          k8s_cluster_name="workload-cluster",
+                          deployment_environment_name="lab",
+                          le="0.5"
+                        }[5m])
+                      )
+                      /
+                      clamp_min(
+                        sum by (job) (
+                          rate(http_server_request_duration_count{
+                            job=~"opentelemetry-demo/.+",
+                            k8s_cluster_name="workload-cluster",
+                            deployment_environment_name="lab"
+                          }[5m])
+                        ),
+                        0.000001
+                      )
+                    )
+                  )
+                  / 0.05
+                )
+                and on(job)
+                (
+                  sum by (job) (
+                    rate(http_server_request_duration_count{
+                      job=~"opentelemetry-demo/.+",
+                      k8s_cluster_name="workload-cluster",
+                      deployment_environment_name="lab"
+                    }[5m])
+                  ) > 0
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: burn_rate
+
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [2]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [burn_rate]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: burn_rate
+              refId: threshold
+              type: threshold
+
+        dashboardUid: service-slo
+        panelId: 4
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: Latency error budget is burning fast
+          description: 'Latency burn rate is above 2x for {{ $labels.job }}.'
+        labels:
+          severity: warning
+          category: slo
+        isPaused: false

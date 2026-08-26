@@ -987,6 +987,502 @@ data:
       "uid": "kubernetes-use",
       "version": 1
     }
+  service-slo.json: |-
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": false,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Non-5xx requests. Target: 99%.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "decimals": 2
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "(\n  100 * (\n    1 -\n    (\n      (\n        sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",http_response_status_code=~\"5..\"}[5m]))\n        or on(job)\n        (0 * sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])))\n      )\n      /\n      sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m]))\n    )\n  )\n)\nand on(job)\n(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])) > 0)",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Availability SLI",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Requests completed within 500 ms. Target: 95%.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "decimals": 2
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 6,
+            "y": 0
+          },
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "(\n  100 *\n  sum by (job) (rate(http_server_request_duration_bucket{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",le=\"0.5\"}[5m]))\n  /\n  sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m]))\n)\nand on(job)\n(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])) > 0)",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Latency SLI",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "5-minute availability error-budget burn rate. Below 1 is within budget.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 2
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 12,
+            "y": 0
+          },
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "(\n  (\n    (\n      sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",http_response_status_code=~\"5..\"}[5m]))\n      or on(job)\n      (0 * sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])))\n    )\n    /\n    clamp_min(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])), 0.000001)\n  )\n  / 0.01\n)\nand on(job)\n(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])) > 0)",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Availability Burn Rate",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "5-minute latency error-budget burn rate. Below 1 is within budget.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 2
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 18,
+            "y": 0
+          },
+          "id": 4,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "(\n  (\n    1 -\n    (\n      sum by (job) (rate(http_server_request_duration_bucket{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",le=\"0.5\"}[5m]))\n      /\n      clamp_min(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])), 0.000001)\n    )\n  )\n  / 0.05\n)\nand on(job)\n(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])) > 0)",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Latency Burn Rate",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Short-window availability budget remaining for the current 5-minute window.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "decimals": 2
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 0,
+            "y": 5
+          },
+          "id": 5,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "clamp_min(100 * (1 - ((\n  (\n    (\n      sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",http_response_status_code=~\"5..\"}[5m]))\n      or on(job)\n      (0 * sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])))\n    )\n    /\n    clamp_min(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])), 0.000001)\n  )\n  / 0.01\n)\nand on(job)\n(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])) > 0))), 0)",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Availability Budget Remaining",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Short-window latency budget remaining for the current 5-minute window.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "decimals": 2
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 6,
+            "y": 5
+          },
+          "id": 6,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "clamp_min(100 * (1 - ((\n  (\n    1 -\n    (\n      sum by (job) (rate(http_server_request_duration_bucket{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",le=\"0.5\"}[5m]))\n      /\n      clamp_min(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])), 0.000001)\n    )\n  )\n  / 0.05\n)\nand on(job)\n(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])) > 0))), 0)",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Latency Budget Remaining",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Traffic used by the SLI calculations.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 5
+          },
+          "id": 7,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m]))",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Request Rate by Service",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "description": "Availability burn rate history. Values above 1 consume budget too quickly.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 13
+          },
+          "id": 8,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "mimir"
+              },
+              "editorMode": "code",
+              "expr": "(\n  (\n    (\n      sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",http_response_status_code=~\"5..\"}[5m]))\n      or on(job)\n      (0 * sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])))\n    )\n    /\n    clamp_min(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])), 0.000001)\n  )\n  / 0.01\n)\nand on(job)\n(sum by (job) (rate(http_server_request_duration_count{job=~\"$service\",k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\"}[5m])) > 0)",
+              "legendFormat": "{{job}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Availability Burn Rate Over Time",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "15s",
+      "schemaVersion": 41,
+      "tags": [
+        "observability",
+        "sre",
+        "slo",
+        "error-budget"
+      ],
+      "templating": {
+        "list": [
+          {
+            "current": {
+              "selected": false,
+              "text": "workload-cluster",
+              "value": "workload-cluster"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "mimir"
+            },
+            "definition": "label_values(http_server_request_duration_count, k8s_cluster_name)",
+            "includeAll": false,
+            "label": "Cluster",
+            "name": "cluster",
+            "query": {
+              "query": "label_values(http_server_request_duration_count, k8s_cluster_name)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "type": "query"
+          },
+          {
+            "current": {
+              "selected": false,
+              "text": "lab",
+              "value": "lab"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "mimir"
+            },
+            "definition": "label_values(http_server_request_duration_count{k8s_cluster_name=\"$cluster\"}, deployment_environment_name)",
+            "includeAll": false,
+            "label": "Environment",
+            "name": "environment",
+            "query": {
+              "query": "label_values(http_server_request_duration_count{k8s_cluster_name=\"$cluster\"}, deployment_environment_name)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "type": "query"
+          },
+          {
+            "current": {
+              "selected": true,
+              "text": [
+                "All"
+              ],
+              "value": [
+                "$__all"
+              ]
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "mimir"
+            },
+            "definition": "label_values(http_server_request_duration_count{k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",job=~\"opentelemetry-demo/.+\"}, job)",
+            "includeAll": true,
+            "allValue": "opentelemetry-demo/.+",
+            "label": "Service",
+            "multi": true,
+            "name": "service",
+            "query": {
+              "query": "label_values(http_server_request_duration_count{k8s_cluster_name=\"$cluster\",deployment_environment_name=\"$environment\",job=~\"opentelemetry-demo/.+\"}, job)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "sort": 1,
+            "type": "query"
+          }
+        ]
+      },
+      "time": {
+        "from": "now-30m",
+        "to": "now"
+      },
+      "timezone": "browser",
+      "title": "Service SLO - Astronomy Shop",
+      "uid": "service-slo",
+      "version": 1
+    }
 kind: ConfigMap
 metadata:
   creationTimestamp: null
