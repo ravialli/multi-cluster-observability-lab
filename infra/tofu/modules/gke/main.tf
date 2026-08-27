@@ -8,7 +8,7 @@ resource "google_container_cluster" "gke" {
   # node pool and immediately delete it.
   remove_default_node_pool = true
   initial_node_count       = 1
-  node_locations           = [var.node_zone]
+  node_locations           = ["us-central1-a"]
   network                  = var.network
   subnetwork               = var.subnet
   networking_mode          = "VPC_NATIVE"
@@ -69,7 +69,7 @@ resource "google_container_node_pool" "gke_system_node_pool" {
   name = var.system_node_pool_name
   project = var.project_id
   location = var.region
-  node_locations = [var.node_zone]
+  node_locations = ["us-central1-a"]
   autoscaling {
     min_node_count = var.system_min_node_count
     max_node_count = var.system_max_node_count
@@ -90,9 +90,9 @@ resource "google_container_node_pool" "gke_system_node_pool" {
       enable_integrity_monitoring = true
     }
     labels = {
+      cluster = var.cluster_label
       "environment" = "prod"
-      "workload"    = "system"
-      "cluster"     = "prod-app-a"
+      "workload"    = var.system_workload_label
     }
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
@@ -110,7 +110,7 @@ resource "google_container_node_pool" "gke_app_node_pool" {
   name = var.spot_node_pool_name
   project = var.project_id
   location = var.region
-  node_locations = ["us-central1-a", "us-central1-b", "us-central1-c"]
+  node_locations = var.node_zone
   autoscaling {
     min_node_count = var.spot_total_min_node_count
     max_node_count = var.spot_total_max_node_count
@@ -119,7 +119,7 @@ resource "google_container_node_pool" "gke_app_node_pool" {
   node_config {
     machine_type = var.spot_machine_type
     disk_type = var.disk_type
-    spot = true
+    spot = var.workload_spot
     disk_size_gb = var.disk_size_gb
     image_type = "COS_CONTAINERD"
     service_account = google_service_account.service_account.email
@@ -131,15 +131,19 @@ resource "google_container_node_pool" "gke_app_node_pool" {
       enable_integrity_monitoring = true
     }
     labels = {
+      cluster = var.cluster_label
       "environment" = "prod"
-      "workload"    = "application"
-      "cluster"     = "prod-app-a"
+      "workload"    = var.workload_label
     }
-    taint {
-      key    = "cloud.google.com/gke-spot"
-      value  = "true"
-      effect = "NO_SCHEDULE"
-    }
+    dynamic "taint" {
+        for_each = var.workload_spot != false ? [1] : []
+        content {
+          key    = "cloud.google.com/gke-spot"
+          value  = "true"
+          effect = "NO_SCHEDULE"
+        }
+      }
+
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]

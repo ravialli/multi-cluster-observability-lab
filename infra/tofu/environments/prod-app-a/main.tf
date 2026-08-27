@@ -24,7 +24,7 @@ module "prod_app_a_gke" {
 
   network   = module.prod_app_a_network.network_id
   subnet    = module.prod_app_a_network.subnet_id
-  node_zone = "us-central1-a"
+  node_zone = ["us-central1-a", "us-central1-b", "us-central1-c"]
 
   pod_range_name      = module.prod_app_a_network.pod_range_name
   services_range_name = module.prod_app_a_network.service_range_name
@@ -32,6 +32,7 @@ module "prod_app_a_gke" {
 
   spot_node_pool_name       = "app-pool"
   spot_machine_type         = "e2-standard-4"
+  workload_spot             = true
   spot_total_min_node_count = 0
   spot_total_max_node_count = 2
 
@@ -41,4 +42,7 @@ module "prod_app_a_gke" {
   system_max_node_count = 1
   disk_size_gb          = 50
   disk_type             = "pd-balanced"
+  cluster_label         = "prod-app-a"
+  system_workload_label = "system"
+  workload_label        = "application"
 }

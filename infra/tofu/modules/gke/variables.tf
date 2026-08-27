@@ -16,7 +16,7 @@ variable "network" {
 
 variable "node_zone" {
   description = "GKE nodes zone"
-  type        = string
+  type        = list(string)
 }
 
 variable "cluster_name" {
@@ -29,6 +29,10 @@ variable "subnet" {
   type        = string
 }
 
+variable "workload_spot" {
+  description = "Spot vs on-demand node selecton"
+  type = bool
+}
 
 variable "pod_range_name" {
   description = "GKE pods name range"
@@ -94,4 +98,17 @@ variable "spot_machine_type" {
 variable "spot_node_pool_name" {
   description = "GKE node pool name"
   type        = string
+}
+
+variable "cluster_label" {
+  type = string
+}
+
+variable "system_workload_label" {
+  type    = string
+  default = "system"
+}
+
+variable "workload_label" {
+  type = string
 }
