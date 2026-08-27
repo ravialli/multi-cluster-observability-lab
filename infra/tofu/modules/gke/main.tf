@@ -110,10 +110,10 @@ resource "google_container_node_pool" "gke_app_node_pool" {
   name = var.spot_node_pool_name
   project = var.project_id
   location = var.region
-  node_locations = [var.node_zone]
+  node_locations = ["us-central1-a", "us-central1-b", "us-central1-c"]
   autoscaling {
-    min_node_count = var.spot_min_node_count
-    max_node_count = var.spot_max_node_count
+    min_node_count = var.spot_total_min_node_count
+    max_node_count = var.spot_total_max_node_count
   }
   
   node_config {

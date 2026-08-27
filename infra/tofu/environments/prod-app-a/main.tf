@@ -30,10 +30,10 @@ module "prod_app_a_gke" {
   services_range_name = module.prod_app_a_network.service_range_name
   service_account_id  = "prod-app-a-gke-nodes"
 
-  spot_node_pool_name = "app-pool"
-  spot_machine_type   = "e2-standard-4"
-  spot_min_node_count = 0
-  spot_max_node_count = 2
+  spot_node_pool_name       = "app-pool"
+  spot_machine_type         = "e2-standard-4"
+  spot_total_min_node_count = 0
+  spot_total_max_node_count = 2
 
   system_node_pool_name = "system-pool"
   system_machine_type   = "e2-standard-2"

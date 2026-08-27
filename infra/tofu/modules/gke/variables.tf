@@ -76,12 +76,12 @@ variable "system_node_pool_name" {
 }
 
 
-variable "spot_max_node_count" {
+variable "spot_total_max_node_count" {
   description = "GKE node max count"
   type        = string
 }
 
-variable "spot_min_node_count" {
+variable "spot_total_min_node_count" {
   description = "GKE node min count"
   type        = string
 }
