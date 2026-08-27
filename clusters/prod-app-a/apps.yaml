@@ -1,0 +1,17 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+
+metadata:
+  name: prod-app-a-apps
+  namespace: flux-system
+
+spec:
+  interval: 5m
+  path: ./apps/prod-app-a/otel-demo
+  prune: true
+  wait: true
+  timeout: 10m
+
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
