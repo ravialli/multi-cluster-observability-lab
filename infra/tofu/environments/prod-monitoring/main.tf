@@ -46,3 +46,55 @@ module "prod_monitoring_gke" {
   system_workload_label = "system"
   workload_label        = "observability"
 }
+
+locals {
+  observability_buckets = {
+    mimir = {
+      extra_labels = {
+        component = "metrics"
+        engine    = "mimir"
+      }
+    }
+    loki = {
+      extra_labels = {
+        component = "logs"
+        engine    = "loki"
+      }
+    }
+    tempo = {
+      extra_labels = {
+        component = "traces"
+        engine    = "tempo"
+      }
+    }
+    pyroscope = {
+      extra_labels = {
+        component = "profiles"
+        engine    = "pyroscope"
+      }
+    }
+  }
+}
+
+# Single resource block creating all 4 buckets using for_each
+resource "google_storage_bucket" "observability" {
+  for_each = local.observability_buckets
+
+  project                     = var.project_id
+  name                        = "${var.project_id}-${each.key}"
+  location                    = "US-CENTRAL1"
+  uniform_bucket_level_access = true
+  lifecycle {
+    prevent_destroy = true
+  }
+  storage_class            = "STANDARD"
+  public_access_prevention = "enforced"
+  versioning {
+    enabled = false
+  }
+  soft_delete_policy {
+    retention_duration_seconds = 0
+  }
+  labels = each.value.extra_labels
+}
+
