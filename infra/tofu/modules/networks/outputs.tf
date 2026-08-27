@@ -25,5 +25,5 @@ output "pod_range_name" {
 
 output "service_range_name" {
   description = "GKE service range name"
-  value       = var.service_range_name
+  value       = var.services_range_name
 }

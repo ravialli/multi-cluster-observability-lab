@@ -39,17 +39,17 @@ variable "pod_range_name" {
   type        = string
 }
 
-variable "service_range_name" {
+variable "services_range_name" {
   description = "services name"
   type        = string
 }
 
 variable "router_name" {
   description = "GKE cloud router name"
-  type = string
+  type        = string
 }
 
 variable "nat_name" {
   description = "GKE nat name"
-  type = string
+  type        = string
 }
