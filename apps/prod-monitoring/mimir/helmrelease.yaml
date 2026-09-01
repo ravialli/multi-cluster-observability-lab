@@ -1,0 +1,130 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: mimir
+  namespace: mimir
+spec:
+  interval: 10m
+  timeout: 15m
+  install:
+    remediation:
+      retries: 2
+  chart:
+    spec:
+      chart: mimir-distributed
+      version: 6.2.0
+      sourceRef:
+        kind: HelmRepository
+        name: grafana 
+        namespace: flux-system
+        
+  values:
+    serviceAccount:
+      create: false
+      name: mimir
+    mimir:
+      structuredConfig:
+        blocks_storage:
+          backend: gcs
+          gcs:
+            bucket_name: "project-02553732-afb0-4b3d-a64-mimir"
+          storage_prefix: "blocks"
+
+        ruler_storage:
+          backend: gcs
+          gcs:
+            bucket_name: "project-02553732-afb0-4b3d-a64-mimir"
+          storage_prefix: "ruler"
+
+        alertmanager_storage:
+          backend: gcs
+          gcs:
+            bucket_name: "project-02553732-afb0-4b3d-a64-mimir"
+          storage_prefix: "alertmanager"
+        ingester:
+          push_grpc_method_enabled: true
+          ring:
+            replication_factor: 1
+            zone_awareness_enabled: false
+        store_gateway: 
+          sharding_ring: 
+            replication_factor: 1
+            zone_awareness_enabled: false
+        ingest_storage:
+          enabled: false
+    
+    kafka:
+      enabled: false
+
+    minio:
+      enabled: false
+
+    rollout_operator:
+      enabled: false
+    distributor:
+      nodeSelector:
+        workload: observability
+      replicas: 1
+
+    ingester:
+      nodeSelector:
+        workload: observability
+      replicas: 1
+      zoneAwareReplication:
+        enabled: false
+
+    querier:
+      nodeSelector:
+        workload: observability
+      replicas: 1
+
+    query_frontend:
+      nodeSelector:
+        workload: observability
+      replicas: 1
+
+    query_scheduler:
+      nodeSelector:
+        workload: observability
+      replicas: 1
+
+    store_gateway:
+      nodeSelector:
+        workload: observability
+      replicas: 1
+      zoneAwareReplication:
+        enabled: false
+
+    compactor:
+      nodeSelector:
+        workload: observability
+      replicas: 1
+
+    gateway:
+      nodeSelector:
+        workload: observability
+      replicas: 1
+
+    alertmanager:
+      enabled: false
+
+    ruler:
+      enabled: false
+
+    overrides_exporter:
+      enabled: false
+
+    chunks-cache:
+      enabled: false
+
+    index-cache:
+      enabled: false
+
+    metadata-cache:
+      enabled: false
+
+    results-cache:
+      enabled: false
+
+    continuous_test:
+      enabled: false

@@ -17,3 +17,8 @@ output "service_range_name" {
   description = "GKE monitoring service range name"
   value       = module.prod_monitoring_network.service_range_name
 }
+
+output "observability_bucket_names_map" {
+  description = "A map of local keys to their respective bucket names."
+  value       = { for k, bucket in google_storage_bucket.observability : k => bucket.name }
+}
