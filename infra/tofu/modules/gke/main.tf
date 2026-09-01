@@ -26,7 +26,6 @@ resource "google_container_cluster" "gke" {
   }
   datapath_provider     = "ADVANCED_DATAPATH"
   enable_shielded_nodes = true
-  deletion_protection   = true
   workload_identity_config {
     workload_pool = "${var.project_id}.svc.id.goog"
   }

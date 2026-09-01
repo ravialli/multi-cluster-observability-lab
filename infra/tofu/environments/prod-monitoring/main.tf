@@ -98,3 +98,34 @@ resource "google_storage_bucket" "observability" {
   labels = each.value.extra_labels
 }
 
+resource "google_storage_bucket_iam_member" "mimir" {
+  bucket = google_storage_bucket.observability["mimir"].name
+
+  role = "roles/storage.objectUser"
+
+  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/mimir/sa/mimir"
+}
+
+resource "google_storage_bucket_iam_member" "loki" {
+  bucket = google_storage_bucket.observability["loki"].name
+
+  role = "roles/storage.objectUser"
+
+  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/loki/sa/loki"
+}
+
+resource "google_storage_bucket_iam_member" "tempo" {
+  bucket = google_storage_bucket.observability["tempo"].name
+
+  role = "roles/storage.objectUser"
+
+  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/tempo/sa/tempo"
+}
+
+resource "google_storage_bucket_iam_member" "pyroscope" {
+  bucket = google_storage_bucket.observability["pyroscope"].name
+
+  role = "roles/storage.objectUser"
+
+  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/pyroscope/sa/pyroscope"
+}
