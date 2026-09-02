@@ -1,0 +1,139 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: pyroscope
+  namespace: pyroscope
+spec:
+  interval: 10m
+  timeout: 15m
+  install:
+    remediation:
+      retries: 2
+  chart:
+    spec:
+      chart: pyroscope
+      version: 2.3.0
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+
+  values:
+    minio:
+      enabled: false
+    agent:
+      enabled: false
+    alloy:
+      enabled: false
+    pyroscope:
+      structuredConfig:
+        storage:
+          backend: gcs
+          gcs:
+            bucket_name: project-02553732-afb0-4b3d-a64-pyroscope
+      replicaCount: 1
+      serviceAccount:
+        create: false
+        name: pyroscope
+      nodeSelector:
+        workload: observability
+    architecture:
+      storage:
+        v1: false
+        v2: true
+      microservices:
+        enabled: true
+        v2:
+          query-backend:
+            kind: Deployment
+            replicaCount: 1
+            resources:
+              limits:
+                memory: 512Mi
+              requests:
+                memory: 256Mi
+                cpu: 200m
+          query-frontend:
+            kind: Deployment
+            replicaCount: 1
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                memory: 128Mi
+                cpu: 100m
+          distributor:
+            kind: Deployment
+            replicaCount: 1
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                memory: 128Mi
+                cpu: 100m
+          segment-writer:
+            kind: StatefulSet
+            replicaCount: 1
+            terminationGracePeriodSeconds: 600
+            resources:
+              requests:
+                memory: 512Mi
+                cpu: 250m
+          compaction-worker:
+            kind: StatefulSet
+            replicaCount: 1
+            terminationGracePeriodSeconds: 1200
+            persistence:
+              enabled: false
+            resources:
+              limits:
+                memory: 512Mi
+              requests:
+                memory: 256Mi
+                cpu: 156m
+          metastore:
+            kind: StatefulSet
+            replicaCount: 1
+            terminationGracePeriodSeconds: 1200
+            persistence:
+              enabled: true
+              size: 10Gi
+              storageClassName: standard-rwo
+            resources:
+              limits:
+                memory: 512Mi
+              requests:
+                memory: 256Mi
+                cpu: 150m
+            extraArgs:
+              metastore.raft.bootstrap-expect-peers: 1
+              # enable cleanup of blocks beyond retention
+              metastore.index.cleanup-interval: 1m
+              metastore.snapshot-compact-on-restore: true
+          tenant-settings:
+            kind: Deployment
+            replicaCount: 1
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                memory: 16Mi
+                cpu: 0.1
+          ad-hoc-profiles:
+            kind: Deployment
+            replicaCount: 1
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                memory: 16Mi
+                cpu: 0.1
+          admin:
+            kind: Deployment
+            replicaCount: 1
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                memory: 16Mi
+                cpu: 0.1
