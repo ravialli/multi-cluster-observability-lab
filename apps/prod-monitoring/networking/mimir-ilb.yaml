@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir-internal-lb
+  namespace: mimir
+  annotations:
+    networking.gke.io/load-balancer-type: "Internal"
+
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Cluster
+
+  selector:
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/instance: mimir
+    app.kubernetes.io/name: mimir
+
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
