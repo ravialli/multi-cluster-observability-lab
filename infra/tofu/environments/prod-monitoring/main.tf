@@ -50,27 +50,43 @@ module "prod_monitoring_gke" {
 locals {
   observability_buckets = {
     mimir = {
+      namespace       = "mimir"
+      service_account = "mimir"
       extra_labels = {
         component = "metrics"
         engine    = "mimir"
       }
     }
     loki = {
+      namespace       = "loki"
+      service_account = "loki"
       extra_labels = {
         component = "logs"
         engine    = "loki"
       }
     }
     tempo = {
+      namespace       = "tempo"
+      service_account = "tempo"
       extra_labels = {
         component = "traces"
         engine    = "tempo"
       }
     }
     pyroscope = {
+      namespace       = "pyroscope"
+      service_account = "pyroscope"
       extra_labels = {
         component = "profiles"
         engine    = "pyroscope"
+      }
+    }
+    loki-ruler = {
+      namespace       = "loki"
+      service_account = "loki"
+      extra_labels = {
+        component = "ruler"
+        engine    = "loki"
       }
     }
   }
@@ -98,34 +114,11 @@ resource "google_storage_bucket" "observability" {
   labels = each.value.extra_labels
 }
 
-resource "google_storage_bucket_iam_member" "mimir" {
-  bucket = google_storage_bucket.observability["mimir"].name
+resource "google_storage_bucket_iam_member" "bucket_iam_member" {
+  for_each = local.observability_buckets
+  bucket = google_storage_bucket.observability[each.key].name
 
   role = "roles/storage.objectUser"
 
-  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/mimir/sa/mimir"
-}
-
-resource "google_storage_bucket_iam_member" "loki" {
-  bucket = google_storage_bucket.observability["loki"].name
-
-  role = "roles/storage.objectUser"
-
-  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/loki/sa/loki"
-}
-
-resource "google_storage_bucket_iam_member" "tempo" {
-  bucket = google_storage_bucket.observability["tempo"].name
-
-  role = "roles/storage.objectUser"
-
-  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/tempo/sa/tempo"
-}
-
-resource "google_storage_bucket_iam_member" "pyroscope" {
-  bucket = google_storage_bucket.observability["pyroscope"].name
-
-  role = "roles/storage.objectUser"
-
-  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/pyroscope/sa/pyroscope"
+  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/${each.value.namespace}/sa/${each.value.service_account}"
 }

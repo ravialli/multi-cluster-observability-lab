@@ -1,0 +1,97 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: loki
+  namespace: loki
+spec:
+  interval: 10m
+  timeout: 15m
+  install:
+    remediation:
+      retries: 2
+  chart:
+    spec:
+      chart: loki
+      version: 18.11.7
+      sourceRef:
+        kind: HelmRepository
+        name: grafana 
+        namespace: flux-system
+
+  values:
+    defaults:
+      nodeSelector:
+        workload: observability
+    loki:
+      schemaConfig:
+        configs:
+          - from: "2024-04-01"
+            store: tsdb
+            object_store: gcs
+            schema: v13
+            index:
+              prefix: loki_index_
+              period: 24h
+      commonConfig:
+        replication_factor: 1
+      storage_config:
+        gcs: 
+          bucket_name: project-02553732-afb0-4b3d-a64-loki
+      storage:
+        type: gcs
+        bucketNames:
+          chunks: project-02553732-afb0-4b3d-a64-loki
+          ruler: project-02553732-afb0-4b3d-a64-loki-ruler
+    deploymentMode: Distributed
+    chunksCache:
+      enabled: false
+    resultsCache:
+      enabled: false
+    gateway:
+      nodeSelector:
+        workload: observability
+      service:
+        type: ClusterIP
+    serviceAccount:
+      name: loki
+      create: false
+    ingester:
+      replicas: 1
+      zoneAwareReplication:
+        enabled: false
+    lokiCanary:
+      nodeSelector:
+        workload: observability
+    querier:
+      replicas: 1
+    queryFrontend:
+      replicas: 1
+    queryScheduler:
+      replicas: 1
+    distributor:
+      replicas: 1
+    compactor:
+      replicas: 1
+    indexGateway:
+      replicas: 1
+    ruler:
+      replicas: 1
+    bloomPlanner:
+      replicas: 0
+    bloomBuilder:
+      replicas: 0
+    bloomGateway:
+      replicas: 0
+
+    minio:
+      enabled: false
+
+    backend:
+      replicas: 0
+    read:
+      replicas: 0
+    write:
+      replicas: 0
+
+    singleBinary:
+      replicas: 0
