@@ -37,7 +37,7 @@ spec:
     opensearch:
       enabled: false
     opentelemetry-collector:
-      config:
+      alternateConfig:
         exporters:
           otlp_http/mimir:
             endpoint: "http://10.40.0.14/otlp"
