@@ -55,10 +55,8 @@ spec:
 
           otlp:
             protocols:
-
               grpc:
                 endpoint: ${env:MY_POD_IP}:4317
-
               http:
                 endpoint: ${env:MY_POD_IP}:4318
 
@@ -231,16 +229,18 @@ spec:
           debug: {}
           otlp_grpc/tempo:
             endpoint: "10.40.0.13:4317"
-
             tls:
               insecure: true
-
             sending_queue:
               batch: {}
 
           otlp_http/mimir:
             endpoint: "http://10.40.0.14/otlp"
+            sending_queue:
+              batch: {}
 
+          otlp_http/loki:
+            endpoint: "http://10.40.0.15/otlp"
             sending_queue:
               batch: {}
 
@@ -319,6 +319,7 @@ spec:
                 - transform/sanitize_logs
 
               exporters:
+                - otlp_http/loki
                 - debug
 
             profiles:
