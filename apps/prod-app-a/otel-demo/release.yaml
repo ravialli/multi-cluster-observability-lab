@@ -37,6 +37,19 @@ spec:
     opensearch:
       enabled: false
     opentelemetry-collector:
+      config:
+        exporters:
+          otlp_grpc/tempo:
+            endpoint: 10.40.0.13:4317
+            tls:
+              insecure: true
+        service:
+          pipelines:
+            traces:
+              exporters:
+                - otlp_grpc/tempo
+                - debug
+                - span_metrics
       nodeSelector:
         cloud.google.com/gke-spot: "true"
 
