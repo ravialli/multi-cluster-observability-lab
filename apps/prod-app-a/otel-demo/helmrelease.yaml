@@ -21,6 +21,9 @@ spec:
         namespace: flux-system
   values:
     default:
+      envOverrides:
+        - name: OTEL_COLLECTOR_NAME
+          value: alloy.observability.svc.cluster.local
       schedulingRules:
         nodeSelector:
           cloud.google.com/gke-spot: "true"
