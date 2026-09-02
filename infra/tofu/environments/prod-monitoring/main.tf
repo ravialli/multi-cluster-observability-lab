@@ -34,7 +34,7 @@ module "prod_monitoring_gke" {
   spot_machine_type         = "e2-standard-4"
   workload_spot             = false
   spot_total_min_node_count = 1
-  spot_total_max_node_count = 2
+  spot_total_max_node_count = 4
 
   system_node_pool_name = "system-pool"
   system_machine_type   = "e2-standard-2"

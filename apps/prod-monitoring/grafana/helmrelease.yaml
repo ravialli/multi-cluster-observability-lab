@@ -1,0 +1,74 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: grafana
+  namespace: grafana
+spec:
+  interval: 10m
+  timeout: 15m
+  install:
+    remediation:
+      retries: 2
+  chart:
+    spec:
+      chart: grafana
+      version: 13.0.1
+      sourceRef:
+        kind: HelmRepository
+        name: grafana-community
+        namespace: flux-system
+
+  values:
+    replicas: 1
+    deploymentStrategy:
+      type: Recreate  
+    persistence:
+      enabled: true
+      storageClassName: standard-rwo
+      size: 10Gi
+
+    service:
+      type: ClusterIP
+
+    nodeSelector:
+      workload: observability
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    datasources:
+      datasources.yaml:
+        apiVersion: 1
+
+        datasources:
+          - name: Mimir
+            uid: mimir
+            type: prometheus
+            access: proxy
+            url: http://mimir-gateway.mimir.svc.cluster.local/prometheus
+            isDefault: true
+
+          - name: Loki
+            uid: loki
+            type: loki
+            access: proxy
+            url: http://loki-gateway.loki.svc.cluster.local
+            jsonData:
+              httpHeaderName1: X-Scope-OrgID
+            secureJsonData:
+              httpHeaderValue1: prod-app-a
+
+          - name: Tempo
+            uid: tempo
+            type: tempo
+            access: proxy
+            url: http://tempo-gateway.tempo.svc.cluster.local
+
+          - name: Pyroscope
+            uid: pyroscope
+            type: grafana-pyroscope-datasource
+            access: proxy
+            url: http://pyroscope-query-frontend.pyroscope.svc.cluster.local:4040
