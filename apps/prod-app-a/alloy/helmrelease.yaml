@@ -1,0 +1,132 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: alloy
+  namespace: observability
+
+spec:
+  interval: 10m
+  timeout: 15m
+
+  install:
+    remediation:
+      retries: 2
+  chart:
+    spec:
+      chart: alloy
+      version: 1.11.1
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+  values:
+    controller:
+      type: deployment
+      replicas: 1
+      nodeSelector:
+        workload: system
+    alloy:
+      extraPorts:
+        - name: otlp-grpc
+          port: 4317
+          targetPort: 4317
+          protocol: TCP
+
+        - name: otlp-http
+          port: 4318
+          targetPort: 4318
+          protocol: TCP
+
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      configMap:
+        create: true
+        content: |-
+          otelcol.receiver.otlp "applications" {
+            grpc {}
+            http {}
+
+            output {
+              metrics = [otelcol.processor.transform.enrich.input]
+              logs    = [otelcol.processor.transform.enrich.input]
+              traces  = [otelcol.processor.transform.enrich.input]
+            }
+          }
+
+          otelcol.processor.transform "enrich" {
+            error_mode = "ignore"
+
+            trace_statements {
+              context = "resource"
+              statements = [
+                `set(attributes["k8s.cluster.name"], "prod-app-a")`,
+                `set(attributes["deployment.environment.name"], "prod")`,
+                `set(attributes["service.namespace"], "opentelemetry-demo") where attributes["service.namespace"] == nil`,
+              ]
+            }
+
+            metric_statements {
+              context = "resource"
+              statements = [
+                `set(attributes["k8s.cluster.name"], "prod-app-a")`,
+                `set(attributes["deployment.environment.name"], "prod")`,
+                `set(attributes["service.namespace"], "opentelemetry-demo") where attributes["service.namespace"] == nil`,
+              ]
+            }
+
+            log_statements {
+              context = "resource"
+              statements = [
+                `set(attributes["k8s.cluster.name"], "prod-app-a")`,
+                `set(attributes["deployment.environment.name"], "prod")`,
+                `set(attributes["service.namespace"], "opentelemetry-demo") where attributes["service.namespace"] == nil`,
+              ]
+            }
+
+            output {
+              metrics = [otelcol.processor.batch.default.input]
+              logs    = [otelcol.processor.batch.default.input]
+              traces  = [otelcol.processor.batch.default.input]
+            }
+          }
+
+          otelcol.processor.batch "default" {
+            output {
+              metrics = [
+                otelcol.exporter.otlphttp.mimir_metrics.input,
+              ]
+              logs    = [otelcol.exporter.otlphttp.loki_logs.input]
+              traces  = [otelcol.exporter.otlp.tempo_traces.input]
+            }
+          }
+
+
+          otelcol.exporter.otlphttp "mimir_metrics" {
+            client {
+              endpoint = "http://10.40.0.14/otlp"
+            }
+          }
+
+          otelcol.exporter.otlphttp "loki_logs" {
+            client {
+              endpoint = "http://10.40.0.15/otlp"
+              headers = {
+                "X-Scope-OrgID" = "prod-app-a",
+              }              
+            }
+          }
+
+          otelcol.exporter.otlp "tempo_traces" {
+            client {
+              endpoint = "10.40.0.13:4317"
+
+              tls {
+                insecure = true
+              }
+            }
+          }

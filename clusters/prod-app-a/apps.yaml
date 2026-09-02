@@ -7,7 +7,7 @@ metadata:
 
 spec:
   interval: 5m
-  path: ./apps/prod-app-a/otel-demo
+  path: ./apps/prod-app-a
   prune: true
   wait: true
   timeout: 10m
