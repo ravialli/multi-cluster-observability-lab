@@ -39,6 +39,10 @@ spec:
     opentelemetry-collector:
       config:
         exporters:
+          otlp_http/mimir:
+            endpoint: "http://10.40.0.14/otlp"
+            tls:
+              insecure: true
           otlp_grpc/tempo:
             endpoint: 10.40.0.13:4317
             tls:
@@ -50,6 +54,17 @@ spec:
                 - otlp_grpc/tempo
                 - debug
                 - span_metrics
+            metrics:
+              exporters:
+                - otlp_http/mimir
+                - debug
+            logs:
+              exporters:
+                - debug
+
+            profiles:
+              exporters:
+                - debug
       nodeSelector:
         cloud.google.com/gke-spot: "true"
 
