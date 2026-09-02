@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - tempo-ilb.yaml
   - mimir-ilb.yaml
+  - loki-ilb.yaml
