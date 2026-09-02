@@ -241,6 +241,8 @@ spec:
 
           otlp_http/loki:
             endpoint: "http://10.40.0.15/otlp"
+            headers:
+              X-Scope-OrgID: "prod-app-a"
             sending_queue:
               batch: {}
 
