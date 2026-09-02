@@ -1,0 +1,144 @@
+  
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tempo
+  namespace: tempo
+spec:
+  interval: 10m
+  timeout: 15m
+  install:
+    remediation:
+      retries: 2
+  chart:
+    spec:
+      chart: tempo-distributed
+      version: 2.23.4
+      sourceRef:
+        kind: HelmRepository
+        name: grafana-community
+        namespace: flux-system      
+  values:
+    serviceAccount:
+      create: false
+      name: tempo
+    storage:
+      trace:
+        backend: gcs
+        gcs:
+          bucket_name: project-02553732-afb0-4b3d-a64-tempo
+        wal:
+          path: /var/tempo/wal
+    traces:
+      otlp:
+        grpc:
+          enabled: true
+        http:
+          enabled: true
+      jaeger:
+        grpc:
+          enabled: false
+        thriftBinary:
+          enabled: false
+        thriftCompact:
+          enabled: false
+        thriftHttp:
+          enabled: false
+      zipkin:
+        enabled: false
+      opencensus:
+        enabled: false
+    distributor:
+      replicas: 1
+      nodeSelector:
+        workload: observability
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    ingester:
+      replicas: 1
+      config:
+        replication_factor: 1
+      zoneAwareReplication:
+        enabled: false
+      nodeSelector:
+        workload: observability
+      persistence:
+        enabled: true
+        size: 10Gi
+        storageClass: standard-rwo
+      resources:
+        requests:
+          cpu: 150m
+          memory: 256Mi
+        limits:
+          cpu: 750m
+          memory: 1Gi
+    querier:
+      replicas: 1
+      nodeSelector:
+        workload: observability
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 768Mi
+    queryFrontend:
+      replicas: 1
+      nodeSelector:
+        workload: observability
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi
+    compactor:
+      replicas: 1
+      nodeSelector:
+        workload: observability
+      config:
+        compaction:
+          block_retention: 168h
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 1Gi
+    gateway:
+      enabled: true
+      replicas: 1
+      nodeSelector:
+        workload: observability
+      service:
+        type: ClusterIP
+      ingress:
+        enabled: false
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 250m
+          memory: 256Mi
+    metricsGenerator:
+      enabled: false
+    minio:
+      enabled: false
+    memcached:
+      enabled: false
+    metaMonitoring:
+      serviceMonitor:
+        enabled: false
+
+      grafanaAgent:
+        enabled: false

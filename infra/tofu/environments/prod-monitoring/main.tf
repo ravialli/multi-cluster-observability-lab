@@ -122,3 +122,10 @@ resource "google_storage_bucket_iam_member" "bucket_iam_member" {
 
   member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/${each.value.namespace}/sa/${each.value.service_account}"
 }
+
+resource "google_storage_bucket_iam_member" "tempo_bucket_reader" {
+  bucket = "project-02553732-afb0-4b3d-a64-tempo"
+  role   = "roles/storage.legacyBucketReader"
+
+  member = "principal://iam.googleapis.com/projects/52801210782/locations/global/workloadIdentityPools/project-02553732-afb0-4b3d-a64.svc.id.goog/subject/ns/tempo/sa/tempo"
+}
