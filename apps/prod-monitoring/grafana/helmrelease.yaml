@@ -93,7 +93,7 @@ spec:
 
                 queries:
                   - name: "Request rate"
-                    query: 'sum(rate(http_server_request_duration_seconds_count{job="$${__span.tags["service.namespace"]}/$${__span.tags["service.name"]}"}[5m]))'
+                    query: 'sum(rate(http_server_request_duration_count{job="$${__span.tags["service.namespace"]}/$${__span.tags["service.name"]}"}[5m]))'
 
           - name: Pyroscope
             uid: pyroscope
