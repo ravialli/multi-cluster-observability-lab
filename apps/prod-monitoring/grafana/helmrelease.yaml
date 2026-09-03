@@ -77,16 +77,23 @@ spec:
             jsonData:
               tracesToLogsV2:
                 datasourceUid: loki
-
                 spanStartTimeShift: "-1m"
                 spanEndTimeShift: "1m"
-
                 tags:
                   - key: service.name
                     value: service_name
 
                 customQuery: true
                 query: '{$${__tags}} | trace_id = "$${__trace.traceId}"'
+
+              tracesToMetrics:
+                datasourceUid: mimir
+                spanStartTimeShift: "-2m"
+                spanEndTimeShift: "2m"
+
+                queries:
+                  - name: "Request rate"
+                    query: 'sum(rate(http_server_request_duration_seconds_count{job="$${__span.tags["service.namespace"]}/$${__span.tags["service.name"]}"}[5m]))'
 
           - name: Pyroscope
             uid: pyroscope
