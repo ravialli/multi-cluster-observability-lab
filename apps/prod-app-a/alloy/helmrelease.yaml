@@ -108,13 +108,13 @@ spec:
 
           otelcol.exporter.otlphttp "mimir_metrics" {
             client {
-              endpoint = "http://10.40.0.14/otlp"
+              endpoint = "http://mimir.observability.internal/otlp"
             }
           }
 
           otelcol.exporter.otlphttp "loki_logs" {
             client {
-              endpoint = "http://10.40.0.15/otlp"
+              endpoint = "http://loki.observability.internal/otlp"
               headers = {
                 "X-Scope-OrgID" = "prod-app-a",
               }              
@@ -123,7 +123,7 @@ spec:
 
           otelcol.exporter.otlp "tempo_traces" {
             client {
-              endpoint = "10.40.0.13:4317"
+              endpoint = "tempo.observability.internal:4317"
 
               tls {
                 insecure = true

@@ -60,7 +60,7 @@ spec:
             }
 
             endpoint {
-              url = "http://10.40.0.14/api/v1/push"
+              url = "http://mimir.observability.internal/api/v1/push"
             }
           }
 
