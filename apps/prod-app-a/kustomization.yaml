@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - otel-demo
   - alloy
+  - alloy-remotewriter
