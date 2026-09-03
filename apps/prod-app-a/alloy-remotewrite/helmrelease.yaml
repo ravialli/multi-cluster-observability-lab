@@ -40,4 +40,122 @@ spec:
         limits:
           cpu: 500m
           memory: 512Mi
-      
+      configMap:
+        create: true
+        content: |-
+          prometheus.exporter.self "alloy" {}
+
+          prometheus.scrape "alloy" {
+            targets = prometheus.exporter.self.alloy.targets
+
+            forward_to = [
+              prometheus.remote_write.mimir.receiver,
+            ]
+          }
+
+          prometheus.remote_write "mimir" {
+            external_labels = {
+              cluster     = "prod-app-a",
+              environment = "prod",
+            }
+
+            endpoint {
+              url = "http://10.40.0.14/api/v1/push"
+            }
+          }
+
+          discovery.kubernetes "local_node" {
+            role = "node"
+
+            selectors {
+              role  = "node"
+              field = "metadata.name=" + sys.env("HOSTNAME")
+            }
+          }
+          discovery.relabel "kubelet" {
+            targets = discovery.kubernetes.local_node.targets
+
+            rule {
+              source_labels = ["__meta_kubernetes_node_address_InternalIP"]
+              target_label  = "__address__"
+              replacement   = "$1:10250"
+            }
+
+            rule {
+              target_label = "__metrics_path__"
+              replacement  = "/metrics"
+            }
+
+            rule {
+              source_labels = ["__meta_kubernetes_node_name"]
+              target_label  = "node"
+            }
+
+            rule {
+              target_label = "job"
+              replacement  = "kubelet"
+            }
+          }
+          prometheus.scrape "kubelet" {
+            targets = discovery.relabel.kubelet.output
+
+            scheme = "https"
+
+            bearer_token_file =
+              "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+            tls_config {
+              ca_file =
+                "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            }
+
+            scrape_interval = "30s"
+
+            forward_to = [
+              prometheus.remote_write.mimir.receiver,
+            ]
+          }
+          discovery.relabel "cadvisor" {
+            targets = discovery.kubernetes.local_node.targets
+
+            rule {
+              source_labels = ["__meta_kubernetes_node_address_InternalIP"]
+              target_label  = "__address__"
+              replacement   = "$1:10250"
+            }
+
+            rule {
+              target_label = "__metrics_path__"
+              replacement  = "/metrics/cadvisor"
+            }
+
+            rule {
+              source_labels = ["__meta_kubernetes_node_name"]
+              target_label  = "node"
+            }
+
+            rule {
+              target_label = "job"
+              replacement  = "cadvisor"
+            }
+          }
+
+          prometheus.scrape "cadvisor" {
+            targets = discovery.relabel.cadvisor.output
+
+            scheme = "https"
+
+            bearer_token_file =
+              "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+            tls_config {
+              ca_file =
+                "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            }
+
+            scrape_interval = "30s"
+
+            forward_to = [
+              prometheus.remote_write.mimir.receiver,
+            ]
+          }
