@@ -58,6 +58,13 @@ spec:
             url: http://loki-gateway.loki.svc.cluster.local
             jsonData:
               httpHeaderName1: X-Scope-OrgID
+              derivedFields:
+                - name: trace_id
+                  matcherType: label
+                  matcherRegex: trace_id
+                  datasourceUid: tempo
+                  url: '$${__value.raw}'
+                  urlDisplayLabel: "View Trace"
             secureJsonData:
               httpHeaderValue1: prod-app-a
 
@@ -66,6 +73,20 @@ spec:
             type: tempo
             access: proxy
             url: http://tempo-gateway.tempo.svc.cluster.local
+
+            jsonData:
+              tracesToLogsV2:
+                datasourceUid: loki
+
+                spanStartTimeShift: "-1m"
+                spanEndTimeShift: "1m"
+
+                tags:
+                  - key: service.name
+                    value: service_name
+
+                customQuery: true
+                query: '{$${__tags}} | trace_id = "$${__trace.traceId}"'
 
           - name: Pyroscope
             uid: pyroscope
