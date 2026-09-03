@@ -19,6 +19,11 @@ spec:
         namespace: flux-system
 
   values:
+    sidecar:
+      dashboards:
+        enabled: true
+        label: grafana_dashboard
+        labelValue: "1"
     replicas: 1
     deploymentStrategy:
       type: Recreate  
@@ -94,6 +99,8 @@ spec:
                 queries:
                   - name: "Request rate"
                     query: 'sum(rate(http_server_request_duration_count{job="$${__span.tags["service.namespace"]}/$${__span.tags["service.name"]}"}[5m]))'
+                  - name: "HTTP Server Rate"
+                    query: 'sum(rate(http_server_duration_count{job="$${__span.tags["service.namespace"]}/$${__span.tags["service.name"]}"}[5m]))'
 
           - name: Pyroscope
             uid: pyroscope
