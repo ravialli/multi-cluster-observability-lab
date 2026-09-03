@@ -8,6 +8,7 @@ metadata:
 
 spec:
   type: LoadBalancer
+  loadBalancerIP: 10.40.0.14
   externalTrafficPolicy: Cluster
 
   selector:

@@ -1,3 +1,53 @@
+locals {
+  observability_ilb_ips = {
+    tempo = "10.40.0.13"
+    mimir = "10.40.0.14"
+    loki  = "10.40.0.15"
+  }
+  observability_buckets = {
+    mimir = {
+      namespace       = "mimir"
+      service_account = "mimir"
+      extra_labels = {
+        component = "metrics"
+        engine    = "mimir"
+      }
+    }
+    loki = {
+      namespace       = "loki"
+      service_account = "loki"
+      extra_labels = {
+        component = "logs"
+        engine    = "loki"
+      }
+    }
+    tempo = {
+      namespace       = "tempo"
+      service_account = "tempo"
+      extra_labels = {
+        component = "traces"
+        engine    = "tempo"
+      }
+    }
+    pyroscope = {
+      namespace       = "pyroscope"
+      service_account = "pyroscope"
+      extra_labels = {
+        component = "profiles"
+        engine    = "pyroscope"
+      }
+    }
+    loki-ruler = {
+      namespace       = "loki"
+      service_account = "loki"
+      extra_labels = {
+        component = "ruler"
+        engine    = "loki"
+      }
+    }
+  }
+}
+
 module "prod_monitoring_network" {
   source = "../../modules/networks"
 
@@ -47,49 +97,15 @@ module "prod_monitoring_gke" {
   workload_label        = "observability"
 }
 
-locals {
-  observability_buckets = {
-    mimir = {
-      namespace       = "mimir"
-      service_account = "mimir"
-      extra_labels = {
-        component = "metrics"
-        engine    = "mimir"
-      }
-    }
-    loki = {
-      namespace       = "loki"
-      service_account = "loki"
-      extra_labels = {
-        component = "logs"
-        engine    = "loki"
-      }
-    }
-    tempo = {
-      namespace       = "tempo"
-      service_account = "tempo"
-      extra_labels = {
-        component = "traces"
-        engine    = "tempo"
-      }
-    }
-    pyroscope = {
-      namespace       = "pyroscope"
-      service_account = "pyroscope"
-      extra_labels = {
-        component = "profiles"
-        engine    = "pyroscope"
-      }
-    }
-    loki-ruler = {
-      namespace       = "loki"
-      service_account = "loki"
-      extra_labels = {
-        component = "ruler"
-        engine    = "loki"
-      }
-    }
-  }
+resource "google_compute_address" "observability_ilb" {
+  for_each = local.observability_ilb_ips
+
+  project      = var.project_id
+  name         = "${each.key}-ilb-ip"
+  region       = var.region
+  subnetwork   = module.prod_monitoring_network.subnet_id
+  address_type = "INTERNAL"
+  address      = each.value
 }
 
 # Single resource block creating all 4 buckets using for_each
@@ -116,7 +132,7 @@ resource "google_storage_bucket" "observability" {
 
 resource "google_storage_bucket_iam_member" "bucket_iam_member" {
   for_each = local.observability_buckets
-  bucket = google_storage_bucket.observability[each.key].name
+  bucket   = google_storage_bucket.observability[each.key].name
 
   role = "roles/storage.objectUser"
 
